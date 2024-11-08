@@ -1,12 +1,15 @@
 package store.domain;
 
+
+import store.utils.ErrorMessages;
+
 public class Product {
     private String name;
     private int price;
     private int stockQuantity;
-    private Promotion promotion;
+    private String promotion;
 
-    public Product(String name, int price, int stockQuantity, Promotion promotion) {
+    public Product(String name, int price, int stockQuantity, String promotion) {
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
@@ -25,7 +28,7 @@ public class Product {
         return stockQuantity;
     }
 
-    public Promotion getPromotion() {
+    public String getPromotion() {
         return promotion;
     }
 }
