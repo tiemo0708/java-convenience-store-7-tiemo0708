@@ -16,7 +16,11 @@ public class ProductFormatter {
         if (product.getStockQuantity() <= 0) {
             productInfo.append("재고 없음 ");
         }
-        if (product.getPromotion() != null) {
+        if (product.getPromotion().equals("null")) {
+            productInfo.append("");
+        }
+
+        if (!product.getPromotion().equals("null")) {
             productInfo.append(product.getPromotion());
         }
 
