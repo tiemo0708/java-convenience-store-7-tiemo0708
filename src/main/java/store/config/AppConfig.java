@@ -5,6 +5,7 @@ import store.controller.ProductController;
 import store.controller.PromotionController;
 import store.domain.Product;
 import store.domain.Promotion;
+import store.domain.Promotions;
 import store.service.ProductService;
 import store.service.PromotionService;
 import store.service.PurchaseService;
@@ -19,13 +20,13 @@ import java.util.List;
 
 public class AppConfig {
     public ProductController productController() {
-        return new ProductController(productService(), outputView(), inputView(), purchaseService());
+        return new ProductController(productService(), outputView(), inputView(), purchaseService(), inputPurchaseValidator(),promotionController());
     }
     public ProductService productService() {
         return new ProductService(productList());
     }
     public StoreApplication storeApplication() {
-        return new StoreApplication(productController());
+        return new StoreApplication(productController(),promotionController());
     }
     public List<Product> productList() {
         return ProductLoader.loadProductsFromFile("src/main/resources/products.md");
@@ -38,7 +39,7 @@ public class AppConfig {
         return new PromotionController(promotionService(), outputView(), inputView());
     }
     public PromotionService promotionService() {
-        return new PromotionService(promotionsList());
+        return new PromotionService(new Promotions(promotionsList()));
     }
 
     public PurchaseService purchaseService(){

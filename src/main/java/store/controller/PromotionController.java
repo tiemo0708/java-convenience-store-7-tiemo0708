@@ -13,4 +13,17 @@ public class PromotionController {
         this.outputView = outputView;
         this.inputView = inputView;
     }
+
+    public void handlePromotion(String productName, int quantity, String promotionName) {
+        validatePromotionDate(promotionName);
+    }
+
+    private Boolean validatePromotionDate(String promotionName) {
+        return promotionService.validatePromotionDate(promotionName);
+    }
+
+    private void applyPromotion(String productName, int quantity) {
+        promotionService.applyPromotion(productName, quantity);
+    }
+
 }

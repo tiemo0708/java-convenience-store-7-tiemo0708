@@ -15,7 +15,7 @@ public class Promotion {
         this.endDate = endDate;
     }
 
-    // Getter 메서드들
+
     public String getPromotionName() {
         return promotionName;
     }
@@ -35,4 +35,5 @@ public class Promotion {
     public String getEndDate() {
         return endDate;
     }
+
 }

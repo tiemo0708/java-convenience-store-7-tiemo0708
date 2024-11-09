@@ -25,4 +25,10 @@ public class ProductService {
         product.decreaseStock(quantity);
     }
 
+    public Product getProductByName(String productName) {
+        return products.stream()
+                .filter(product -> product.getName().equals(productName))
+                .findFirst()
+                .orElse(null);
+    }
 }
