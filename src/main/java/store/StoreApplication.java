@@ -10,7 +10,7 @@ public class StoreApplication {
     }
 
     public void run() {
-        productController.printWelcomeMessage();
-        productController.printProductList();
+        productController.handleInitialDisplay();
+
     }
 }
