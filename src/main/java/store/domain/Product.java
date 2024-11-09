@@ -31,5 +31,12 @@ public class Product {
     public String getPromotion() {
         return promotion;
     }
+
+    public void decreaseStock(int quantity) {
+        if (stockQuantity < quantity) {
+            throw new IllegalArgumentException(ErrorMessages.INSUFFICIENT_STOCK_MESSAGE);
+        }
+        this.stockQuantity -= quantity;
+    }
 }
 

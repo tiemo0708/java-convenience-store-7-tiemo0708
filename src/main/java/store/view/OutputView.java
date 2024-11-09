@@ -20,4 +20,8 @@ public class OutputView {
             System.out.println(productInfo);
         }
     }
+
+    public void printError(String message) {
+        System.out.println(message);
+    }
 }
