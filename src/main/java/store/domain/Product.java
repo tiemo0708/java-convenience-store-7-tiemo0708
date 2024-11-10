@@ -3,13 +3,15 @@ package store.domain;
 
 import store.utils.ErrorMessages;
 
+import java.math.BigDecimal;
+
 public class Product {
     private String name;
-    private int price;
+    private BigDecimal price;
     private int stockQuantity;
     private String promotion;
 
-    public Product(String name, int price, int stockQuantity, String promotion) {
+    public Product(String name, BigDecimal price, int stockQuantity, String promotion) {
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
@@ -20,7 +22,7 @@ public class Product {
         return name;
     }
 
-    public int getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
