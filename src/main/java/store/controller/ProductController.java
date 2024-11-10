@@ -76,7 +76,8 @@ public class ProductController {
             Product product = productService.getProductByName(productName);
             if (product != null && product.getPromotion() != null) {
                 String promotionName = product.getPromotion();
-                promotionController.handlePromotion(productName, quantity, promotionName);
+                int updatedQuantity = promotionController.handlePromotion(productName, quantity, promotionName);
+                purchaseItems.put(productName, updatedQuantity);
             }
         }
     }

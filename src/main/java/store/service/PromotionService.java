@@ -14,10 +14,6 @@ public class PromotionService {
         this.promotions = promotions;
     }
 
-    public void applyPromotion(String productName, int quantity) {
-        promotions.applyPromotion(productName, quantity);
-    }
-
     public Promotion validatePromotionDate(String promotionName) {
         LocalDate currentDate = DateTimes.now().toLocalDate();
 

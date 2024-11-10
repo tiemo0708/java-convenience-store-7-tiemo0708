@@ -14,8 +14,4 @@ public class Promotions {
     public List<Promotion> getPromotions() {
         return Collections.unmodifiableList(promotions);
     }
-
-    public void applyPromotion(String productName, int quantity) {
-
-    }
 }

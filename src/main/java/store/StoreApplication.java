@@ -15,6 +15,6 @@ public class StoreApplication {
     public void run() {
         productController.handleInitialDisplay();
         productController.handlePurchase();
-
+        //productController.handleInitialDisplay();
     }
 }
