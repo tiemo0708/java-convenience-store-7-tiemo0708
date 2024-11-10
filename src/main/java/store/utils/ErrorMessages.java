@@ -6,6 +6,8 @@ public class ErrorMessages {
     public static final String INVALID_INPUT_MESSAGE = ERROR_PREFIX+"입력이 올바르지 않습니다. 형식에 맞춰 입력해 주세요. (예: [사이다-2])";
     public static final String INVALID_QUANTITY_MESSAGE = ERROR_PREFIX+"수량은 0보다 커야 합니다.";
     public static final String PRODUCT_NOT_FOUND_MESSAGE = ERROR_PREFIX+"해당 상품이 존재하지 않습니다.";
+    public static final String INVALID_YES_NO_INPUT_MESSAGE = ERROR_PREFIX+"잘못된 입력입니다. 'Y' 또는 'N'만 입력할 수 있습니다.";
+
     private ErrorMessages() {
     }
 }

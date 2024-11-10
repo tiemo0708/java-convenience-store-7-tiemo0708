@@ -11,6 +11,8 @@ import store.service.PromotionService;
 import store.service.PurchaseService;
 import store.utils.ProductLoader;
 import store.utils.PromotionLoader;
+import store.validator.InputConfirmValidator;
+import store.validator.InputConfirmValidatorImpl;
 import store.validator.InputPurchaseValidator;
 import store.validator.InputPurchaseValidatorImpl;
 import store.view.InputView;
@@ -36,7 +38,7 @@ public class AppConfig {
         return PromotionLoader.loadPromotionsFromFile("src/main/resources/promotions.md");
     }
     public PromotionController promotionController() {
-        return new PromotionController(promotionService(), outputView(), inputView());
+        return new PromotionController(promotionService(), outputView(), inputView(),inputConfirmValidator());
     }
     public PromotionService promotionService() {
         return new PromotionService(new Promotions(promotionsList()));
@@ -53,5 +55,8 @@ public class AppConfig {
     }
     public InputPurchaseValidator inputPurchaseValidator() {
         return new InputPurchaseValidatorImpl();
+    }
+    public InputConfirmValidator inputConfirmValidator(){
+    return new InputConfirmValidatorImpl();
     }
 }

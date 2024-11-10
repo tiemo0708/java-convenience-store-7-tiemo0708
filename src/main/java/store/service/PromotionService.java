@@ -17,7 +17,7 @@ public class PromotionService {
         promotions.applyPromotion(productName, quantity);
     }
 
-    public Boolean validatePromotionDate(String promotionName) {
+    public Promotion validatePromotionDate(String promotionName) {
         LocalDate currentDate = DateTimes.now().toLocalDate();
 
         Promotion promotion = promotions.getPromotions().stream()
@@ -29,8 +29,15 @@ public class PromotionService {
         LocalDate endDate = LocalDate.parse(promotion.getEndDate());
 
         if (currentDate.isBefore(startDate) || currentDate.isAfter(endDate)) {
-            return false;
+            return null;
         }
-        return true;
+        return promotion;
+    }
+
+    public Promotion findPromotionName(String promotionName) {
+        return promotions.getPromotions().stream()
+                .filter(promotion -> promotion.getPromotionName().equals(promotionName))
+                .findFirst()
+                .orElse(null);
     }
 }
