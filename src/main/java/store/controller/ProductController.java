@@ -1,7 +1,11 @@
 package store.controller;
 
 import store.domain.Product;
+import store.domain.Promotion;
+import store.domain.PromotionResult;
+import store.domain.PurchaseRecord;
 import store.service.ProductService;
+import store.service.PromotionService;
 import store.service.PurchaseService;
 import store.utils.ProductInputParser;
 import store.validator.InputConfirmValidator;
@@ -9,6 +13,8 @@ import store.validator.InputPurchaseValidator;
 import store.view.InputView;
 import store.view.OutputView;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +37,11 @@ public class ProductController {
         this.promotionController = promotionController;
         this.inputConfirmValidator = inputConfirmValidator;
     }
-    public void printWelcomeMessage(){
+
+    public void printWelcomeMessage() {
         outputView.printWelcomeMessage();
     }
+
     public void printProductList() {
         List<Product> products = productService.getAllProducts();
         outputView.printProductList(products);
@@ -50,8 +58,19 @@ public class ProductController {
             String input = inputView.getProductInput();
             try {
                 Map<String, Integer> purchaseItems = parsePurchaseItems(input);
-                applyPromotions(purchaseItems);
-                applyPromotionsAndCheckStock(purchaseItems);
+                List<PurchaseRecord> purchaseRecords = new ArrayList<>();
+                // Step 1: 프로모션 날짜와 유효성 확인
+                //validatePromotions(purchaseItems);
+
+                // Step 2: 재고 확인 및 적용 가능한 최대 수량 조정
+                adjustStockAndCheck(purchaseItems);
+
+                // Step 3: 프로모션 혜택 적용
+                applyPromotions(purchaseItems,purchaseRecords);
+
+                // Step 4: 재고 차감
+                updateInventory(purchaseItems);
+
                 validInput = true;
             } catch (IllegalArgumentException e) {
                 outputView.printError(e.getMessage());
@@ -72,20 +91,19 @@ public class ProductController {
         return purchaseItems;
     }
 
-    private void applyPromotions(Map<String, Integer> purchaseItems) {
+    private void validatePromotions(Map<String, Integer> purchaseItems) {
         for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
             String productName = entry.getKey();
-            int quantity = entry.getValue();
             Product product = productService.getProductByName(productName);
             if (product != null && product.getPromotion() != null) {
                 String promotionName = product.getPromotion();
-                int updatedQuantity = promotionController.handlePromotion(productName, quantity, promotionName);
-                purchaseItems.put(productName, updatedQuantity);
+                // 중복된 로직 제거: PromotionController에서 날짜 검증만 하도록 변경
+              //  promotionController.validatePromotionDate(promotionName);
             }
         }
     }
 
-    private void applyPromotionsAndCheckStock(Map<String, Integer> purchaseItems) {
+    private void adjustStockAndCheck(Map<String, Integer> purchaseItems) {
         for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
             String productName = entry.getKey();
             int quantity = entry.getValue();
@@ -95,62 +113,71 @@ public class ProductController {
             int promoStock = getPromoStock(promoProduct);
             int normalStock = getNormalStock(normalProduct);
 
-            handlePromotionStock(productName, quantity, promoProduct, normalProduct, promoStock, normalStock);
+            if (quantity > promoStock + normalStock) {
+                throw new IllegalArgumentException("해당 상품의 재고가 부족합니다.");
+            }
         }
     }
+
     private int getPromoStock(Product promoProduct) {
-        if (promoProduct == null) {
-            return 0;
-        }
-        return promoProduct.getStockQuantity();
+        return promoProduct != null ? promoProduct.getStockQuantity() : 0;
     }
+
     private int getNormalStock(Product normalProduct) {
-        if (normalProduct == null) {
-            return 0;
-        }
-        return normalProduct.getStockQuantity();
+        return normalProduct != null ? normalProduct.getStockQuantity() : 0;
     }
-    private void handlePromotionStock(String productName, int quantity, Product promoProduct, Product normalProduct, int promoStock, int normalStock) {
-        if (quantity <= promoStock) {
-            promoProduct.decreaseStock(quantity);
-            productService.updateProduct(promoProduct);
-            return;
-        }
 
-        handleMixedStock(productName, quantity, promoProduct, normalProduct, promoStock, normalStock);
-    }
-    private void handleMixedStock(String productName, int quantity, Product promoProduct, Product normalProduct, int promoStock, int normalStock) {
-        int totalStock = promoStock + normalStock;
+    private void applyPromotions(Map<String, Integer> purchaseItems, List<PurchaseRecord> purchaseRecords) {
+        for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
+            String productName = entry.getKey();
+            int quantity = entry.getValue();
+            Product product = productService.getProductByName(productName);
+            if (product != null && product.getPromotion() != null) {
+                String promotionName = product.getPromotion();
+                BigDecimal productPrice = product.getPrice();
 
-        // 총 재고가 구매 수량을 만족하지 못할 때 예외 처리
-        if (quantity > totalStock) {
-            throw new IllegalArgumentException("해당 상품의 재고가 부족합니다.");
-        }
+                // PromotionController에서 PromotionResult 반환받음
+                PromotionResult promotionResult = promotionController.applyPromotionLogic(productName, quantity, promotionName, productPrice);
 
-        // 프로모션 재고부터 사용
-        int remainingQuantity = quantity;
+                // 업데이트된 수량을 반영
+                int updatedQuantity = promotionResult.getUpdatedQuantity();
+                purchaseItems.put(productName, updatedQuantity);
 
-        if (promoStock > 0) {
-            int promoUsed = Math.min(promoStock, remainingQuantity);
-            promoProduct.decreaseStock(promoUsed);
-            productService.updateProduct(promoProduct);
-            remainingQuantity -= promoUsed;
-        }
+                // PurchaseRecord 생성하여 할인 정보 저장
+                PurchaseRecord record = new PurchaseRecord(
+                        productName,
+                        updatedQuantity,
+                        promotionResult.getFreeQuantity(),
+                        promotionResult.getDiscountAmount(),
+                        productPrice.multiply(BigDecimal.valueOf(promotionResult.getUpdatedQuantity()))
+                );
 
-        // 일반 재고 사용
-        if (remainingQuantity > 0) {
-            String confirmInput = inputView.isPromotionInvalid(remainingQuantity, productName);
-
-            inputConfirmValidator.validateConfirmation(confirmInput);
-
-            if (confirmInput.equalsIgnoreCase("Y")) {
-                normalProduct.decreaseStock(remainingQuantity);
-                productService.updateProduct(normalProduct);
-            } else {
-                throw new IllegalArgumentException("구매가 취소되었습니다.");
+                purchaseRecords.add(record);
             }
         }
     }
 
 
+    private void updateInventory(Map<String, Integer> purchaseItems) {
+        for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
+            String productName = entry.getKey();
+            int quantity = entry.getValue();
+            Product promoProduct = productService.getProductByNameAndPromotion(productName, true);
+            Product normalProduct = productService.getProductByNameAndPromotion(productName, false);
+
+            int remainingQuantity = quantity;
+
+            if (promoProduct != null && promoProduct.getStockQuantity() > 0) {
+                int promoUsed = Math.min(promoProduct.getStockQuantity(), remainingQuantity);
+                promoProduct.decreaseStock(promoUsed);
+                //productService.updateProduct(promoProduct);
+                remainingQuantity -= promoUsed;
+            }
+
+            if (remainingQuantity > 0 && normalProduct != null && normalProduct.getStockQuantity() >= remainingQuantity) {
+                normalProduct.decreaseStock(remainingQuantity);
+              //  productService.updateProduct(normalProduct);
+            }
+        }
+    }
 }

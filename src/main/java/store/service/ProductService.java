@@ -40,16 +40,4 @@ public class ProductService {
         }
         return null;
     }
-
-    public void updateProduct(Product updatedProduct) {
-        for (int i = 0; i < products.size(); i++) {
-            Product product = products.get(i);
-            if (product.getName().equals(updatedProduct.getName()) &&
-                    ((product.getPromotion() != null && updatedProduct.getPromotion() != null) ||
-                            (product.getPromotion() == null && updatedProduct.getPromotion() == null))) {
-                products.set(i, updatedProduct);
-                return;
-            }
-        }
-    }
 }

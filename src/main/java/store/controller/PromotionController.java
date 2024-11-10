@@ -1,10 +1,13 @@
 package store.controller;
 
 import store.domain.Promotion;
+import store.domain.PromotionResult;
 import store.service.PromotionService;
 import store.validator.InputConfirmValidator;
 import store.view.InputView;
 import store.view.OutputView;
+
+import java.math.BigDecimal;
 
 public class PromotionController {
     private final PromotionService promotionService;
@@ -19,43 +22,37 @@ public class PromotionController {
         this.inputConfirmValidator = inputConfirmValidator;
     }
 
-    public int handlePromotion(String productName, int quantity, String promotionName) {
-        boolean validInput = false;
-        while (!validInput) {
-            try {
-                Promotion applicablePromotion = validatePromotionDate(promotionName);
 
-                if (applicablePromotion == null) {
-                    return quantity; // 프로모션이 없으면 현재 수량 그대로 반환
-                }
-
-                quantity = applyPromotionLogic(productName, quantity, applicablePromotion);
-                validInput = true;
-
-            } catch (IllegalArgumentException e) {
-                outputView.printError(e.getMessage());
-            }
+    public PromotionResult applyPromotionLogic(String productName, int quantity, String promotionName, BigDecimal productPrice) {
+        Promotion applicablePromotion = promotionService.findPromotionName(promotionName);
+        if (applicablePromotion == null) {
+            return new PromotionResult(quantity, 0, BigDecimal.ZERO); // 유효하지 않은 경우, 수량 그대로 반환
         }
-        return quantity;
-    }
 
-    private int applyPromotionLogic(String productName, int quantity, Promotion applicablePromotion) {
         int buyQuantity = applicablePromotion.getBuyQuantity();
         int getQuantity = applicablePromotion.getGetQuantity();
+        int freeQuantity = 0;
+        BigDecimal discountAmount = BigDecimal.ZERO;
 
         if (shouldOfferFreeProduct(buyQuantity, quantity)) {
-            String confirmInput = inputView.confirmPromotionAdditionMessage(productName);
+            String confirmInput = inputView.confirmPromotionAdditionMessage(productName,getQuantity);
             inputConfirmValidator.validateConfirmation(confirmInput);
             if (confirmInput.equalsIgnoreCase("Y")) {
-                quantity += getQuantity; // 무료 제품 추가
+                quantity++;
             }
         }
-
-        return quantity;
+        if(buyQuantity==2){
+            freeQuantity = quantity/3;
+        }
+        if (buyQuantity==1){
+            freeQuantity = quantity/2;
+        }
+        discountAmount=productPrice.multiply(BigDecimal.valueOf(freeQuantity));
+        return new PromotionResult(quantity, freeQuantity, discountAmount);
     }
 
-    private boolean shouldOfferFreeProduct(int buyQuantity, int quantity) {
 
+    private boolean shouldOfferFreeProduct(int buyQuantity, int quantity) {
         if (buyQuantity == 2 && (quantity % 3) == 2) {
             return true; // 탄산 2+1의 경우
         }
@@ -64,9 +61,4 @@ public class PromotionController {
         }
         return false;
     }
-
-    private Promotion validatePromotionDate(String promotionName) {
-        return promotionService.validatePromotionDate(promotionName);
-    }
-
 }
