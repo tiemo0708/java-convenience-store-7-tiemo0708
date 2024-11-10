@@ -26,8 +26,8 @@ public class PromotionController {
                 Promotion applicablePromotion = validatePromotionDate(promotionName);
                 if (applicablePromotion != null) {
                     confirmPromotionAddition(quantity, applicablePromotion, productName);
-                    validInput = true;
                 }
+                validInput = true;
             } catch (IllegalArgumentException e) {
                 outputView.printError(e.getMessage());
             }

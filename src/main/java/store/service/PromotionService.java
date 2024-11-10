@@ -9,6 +9,7 @@ import java.time.LocalDate;
 
 public class PromotionService {
     private final Promotions promotions;
+
     public PromotionService(Promotions promotions) {
         this.promotions = promotions;
     }
@@ -23,13 +24,13 @@ public class PromotionService {
         Promotion promotion = promotions.getPromotions().stream()
                 .filter(p -> p.getPromotionName().equals(promotionName))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("해당 프로모션을 찾을 수 없습니다."));
-
-        LocalDate startDate = LocalDate.parse(promotion.getStartDate());
-        LocalDate endDate = LocalDate.parse(promotion.getEndDate());
-
-        if (currentDate.isBefore(startDate) || currentDate.isAfter(endDate)) {
-            return null;
+                .orElse(null);
+        if (promotion!=null) {
+            LocalDate startDate = LocalDate.parse(promotion.getStartDate());
+            LocalDate endDate = LocalDate.parse(promotion.getEndDate());
+            if (currentDate.isBefore(startDate) || currentDate.isAfter(endDate)) {
+                return null;
+            }
         }
         return promotion;
     }
