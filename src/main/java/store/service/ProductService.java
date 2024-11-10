@@ -31,4 +31,25 @@ public class ProductService {
                 .findFirst()
                 .orElse(null);
     }
+
+    public Product getProductByNameAndPromotion(String productName, boolean isPromotion) {
+        for (Product product : products) {
+            if (product.getName().equals(productName) && (isPromotion == (!product.getPromotion().equals("null")))) {
+                return product;
+            }
+        }
+        return null;
+    }
+
+    public void updateProduct(Product updatedProduct) {
+        for (int i = 0; i < products.size(); i++) {
+            Product product = products.get(i);
+            if (product.getName().equals(updatedProduct.getName()) &&
+                    ((product.getPromotion() != null && updatedProduct.getPromotion() != null) ||
+                            (product.getPromotion() == null && updatedProduct.getPromotion() == null))) {
+                products.set(i, updatedProduct);
+                return;
+            }
+        }
+    }
 }

@@ -22,7 +22,7 @@ import java.util.List;
 
 public class AppConfig {
     public ProductController productController() {
-        return new ProductController(productService(), outputView(), inputView(), purchaseService(), inputPurchaseValidator(),promotionController());
+        return new ProductController(productService(), outputView(), inputView(), purchaseService(), inputPurchaseValidator(),promotionController(),inputConfirmValidator());
     }
     public ProductService productService() {
         return new ProductService(productList());
