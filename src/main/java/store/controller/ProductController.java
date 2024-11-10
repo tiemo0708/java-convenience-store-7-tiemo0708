@@ -120,12 +120,19 @@ public class ProductController {
     }
 
     private int getPromoStock(Product promoProduct) {
-        return promoProduct != null ? promoProduct.getStockQuantity() : 0;
+        if (promoProduct != null) {
+            return promoProduct.getStockQuantity();
+        }
+        return 0;
     }
 
     private int getNormalStock(Product normalProduct) {
-        return normalProduct != null ? normalProduct.getStockQuantity() : 0;
+        if (normalProduct != null) {
+            return normalProduct.getStockQuantity();
+        }
+        return 0;
     }
+
 
     private void applyPromotions(Map<String, Integer> purchaseItems, List<PurchaseRecord> purchaseRecords) {
         for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
