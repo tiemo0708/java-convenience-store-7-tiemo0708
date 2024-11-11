@@ -5,6 +5,7 @@ import store.domain.Promotion;
 import store.domain.Promotions;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 
 public class PromotionService {
@@ -15,7 +16,7 @@ public class PromotionService {
     }
 
     public Promotion validatePromotionDate(String promotionName) {
-        LocalDate currentDate = DateTimes.now().toLocalDate();
+        LocalDateTime currentDate = DateTimes.now();
 
         Promotion promotion = promotions.getPromotions().stream()
                 .filter(p -> p.getPromotionName().equals(promotionName))
@@ -24,7 +25,7 @@ public class PromotionService {
         if (promotion!=null) {
             LocalDate startDate = LocalDate.parse(promotion.getStartDate());
             LocalDate endDate = LocalDate.parse(promotion.getEndDate());
-            if (currentDate.isBefore(startDate) || currentDate.isAfter(endDate)) {
+            if (currentDate.isBefore(startDate.atStartOfDay()) || currentDate.isAfter(endDate.atStartOfDay())) {
                 return null;
             }
         }
