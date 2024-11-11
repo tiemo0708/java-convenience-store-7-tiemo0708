@@ -9,7 +9,7 @@ public class InputPurchaseValidatorImpl implements InputPurchaseValidator{
     @Override
     public void validateProductInput(String input) {
         if (!input.matches(PRODUCT_INPUT_REGEX)) {
-            throw new IllegalArgumentException(ErrorMessages.PRODUCT_NOT_FOUND_MESSAGE);
+            throw new IllegalArgumentException(ErrorMessages.INVALID_INPUT_MESSAGE);
         }
     }
 
