@@ -186,7 +186,7 @@ public class ProductController {
             totalDiscountableAmount = totalDiscountableAmount.add(record.getTotalCost().subtract(record.getPromotionalAmount()));
         }
 
-        if (!totalDiscountableAmount.equals(BigDecimal.ZERO)) {
+
             String confirmInput = inputView.isMembershipInvalid();
             try {
                 inputConfirmValidator.validateConfirmation(confirmInput);
@@ -197,7 +197,7 @@ public class ProductController {
             if (!confirmInput.equalsIgnoreCase("Y")) {
                 return BigDecimal.ZERO;
             }
-        }
+
 
         BigDecimal membershipDiscount = totalDiscountableAmount.multiply(BigDecimal.valueOf(0.3));
         BigDecimal maxMembershipDiscount = BigDecimal.valueOf(8000);
