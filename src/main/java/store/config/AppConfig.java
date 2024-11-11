@@ -8,7 +8,6 @@ import store.domain.Promotion;
 import store.domain.Promotions;
 import store.service.ProductService;
 import store.service.PromotionService;
-import store.service.PurchaseService;
 import store.utils.ProductLoader;
 import store.utils.PromotionLoader;
 import store.validator.InputConfirmValidator;
@@ -22,7 +21,7 @@ import java.util.List;
 
 public class AppConfig {
     public ProductController productController() {
-        return new ProductController(productService(), outputView(), inputView(), purchaseService(), inputPurchaseValidator(),promotionController(),inputConfirmValidator());
+        return new ProductController(productService(), outputView(), inputView(), inputPurchaseValidator(),promotionController(),inputConfirmValidator());
     }
     public ProductService productService() {
         return new ProductService(productList());
@@ -44,9 +43,6 @@ public class AppConfig {
         return new PromotionService(new Promotions(promotionsList()));
     }
 
-    public PurchaseService purchaseService(){
-        return new PurchaseService(productService(),inputPurchaseValidator());
-    }
     public OutputView outputView() {
         return new OutputView();
     }

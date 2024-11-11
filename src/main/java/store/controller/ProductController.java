@@ -5,7 +5,6 @@ import store.domain.Promotion;
 import store.domain.PromotionResult;
 import store.domain.PurchaseRecord;
 import store.service.ProductService;
-import store.service.PurchaseService;
 import store.utils.ErrorMessages;
 import store.utils.ProductInputParser;
 import store.validator.InputConfirmValidator;
@@ -23,16 +22,14 @@ public class ProductController {
     private final ProductService productService;
     private final OutputView outputView;
     private final InputView inputView;
-    private final PurchaseService purchaseService;
     private final InputPurchaseValidator inputPurchaseValidator;
     private final PromotionController promotionController;
     private final InputConfirmValidator inputConfirmValidator;
 
-    public ProductController(ProductService productService, OutputView outputView, InputView inputView, PurchaseService purchaseService, InputPurchaseValidator inputPurchaseValidator, PromotionController promotionController, InputConfirmValidator inputConfirmValidator) {
+    public ProductController(ProductService productService, OutputView outputView, InputView inputView, InputPurchaseValidator inputPurchaseValidator, PromotionController promotionController, InputConfirmValidator inputConfirmValidator) {
         this.productService = productService;
         this.outputView = outputView;
         this.inputView = inputView;
-        this.purchaseService = purchaseService;
         this.inputPurchaseValidator = inputPurchaseValidator;
         this.promotionController = promotionController;
         this.inputConfirmValidator = inputConfirmValidator;
