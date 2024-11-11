@@ -52,8 +52,9 @@ public class ProductController {
     }
 
     public void handlePurchase() {
-        boolean validInput = false;
-        while (!validInput) {
+        boolean validInput = true;
+        while (validInput) {
+            handleInitialDisplay();
             String input = inputView.getProductInput();
             try {
                 Map<String, Integer> purchaseItems = parsePurchaseItems(input);
@@ -66,11 +67,27 @@ public class ProductController {
 
                 BigDecimal membershipDiscount = applyMembershipDiscount(purchaseRecords);
                 updateInventory(purchaseRecords);
-                validInput = true;
+                printReceipt(purchaseRecords, membershipDiscount);
+                validInput = AdditionalPurchase();
             } catch (IllegalArgumentException e) {
                 outputView.printError(e.getMessage());
             }
         }
+    }
+
+    private boolean AdditionalPurchase() {
+        String confirmInput = inputView.askForAdditionalPurchase();
+        inputConfirmValidator.validateConfirmation(confirmInput);
+        if (confirmInput.equals("Y")){
+            return true;
+        }
+        return false;
+    }
+
+    private void printReceipt(List<PurchaseRecord> purchaseRecords, BigDecimal membershipDiscount) {
+        outputView.printReceipt(purchaseRecords,membershipDiscount);
+
+
     }
 
     private Map<String, Integer> parsePurchaseItems(String input) {
