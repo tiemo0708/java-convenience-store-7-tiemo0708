@@ -21,7 +21,9 @@ public class PromotionController {
         this.inputView = inputView;
         this.inputConfirmValidator = inputConfirmValidator;
     }
-
+    Promotion validatePromotionDate(String promotionName) {
+        return promotionService.validatePromotionDate(promotionName);
+    }
 
     public PromotionResult applyPromotionLogic(String productName, int quantity, String promotionName, BigDecimal productPrice) {
         Promotion applicablePromotion = promotionService.findPromotionName(promotionName);

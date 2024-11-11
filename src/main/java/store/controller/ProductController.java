@@ -60,14 +60,14 @@ public class ProductController {
                 Map<String, Integer> purchaseItems = parsePurchaseItems(input);
                 List<PurchaseRecord> purchaseRecords = new ArrayList<>();
                 // Step 1: 프로모션 날짜와 유효성 확인
-                //validatePromotions(purchaseItems);
+
 
                 // Step 2: 재고 확인 및 적용 가능한 최대 수량 조정
                 adjustStockAndCheck(purchaseItems);
 
-                // Step 3: 프로모션 혜택 적용
-                applyPromotions(purchaseItems,purchaseRecords);
-
+                if (validatePromotions(purchaseItems)!=null) {
+                    applyPromotions(purchaseItems, purchaseRecords);
+                }
                 // Step 4: 재고 차감
                 updateInventory(purchaseItems);
 
@@ -91,17 +91,18 @@ public class ProductController {
         return purchaseItems;
     }
 
-    private void validatePromotions(Map<String, Integer> purchaseItems) {
+    private Promotion validatePromotions(Map<String, Integer> purchaseItems) {
         for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
             String productName = entry.getKey();
             Product product = productService.getProductByName(productName);
             if (product != null && product.getPromotion() != null) {
                 String promotionName = product.getPromotion();
-                // 중복된 로직 제거: PromotionController에서 날짜 검증만 하도록 변경
-              //  promotionController.validatePromotionDate(promotionName);
+                return promotionController.validatePromotionDate(promotionName);
             }
         }
+        return null;
     }
+
 
     private void adjustStockAndCheck(Map<String, Integer> purchaseItems) {
         for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
@@ -183,7 +184,7 @@ public class ProductController {
 
             if (remainingQuantity > 0 && normalProduct != null && normalProduct.getStockQuantity() >= remainingQuantity) {
                 normalProduct.decreaseStock(remainingQuantity);
-              //  productService.updateProduct(normalProduct);
+                //  productService.updateProduct(normalProduct);
             }
         }
     }
