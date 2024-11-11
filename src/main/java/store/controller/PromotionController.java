@@ -28,7 +28,7 @@ public class PromotionController {
     public PromotionResult applyPromotionLogic(String productName, int quantity, String promotionName, BigDecimal productPrice, int promoStock) {
         Promotion applicablePromotion = promotionService.findPromotionName(promotionName);
         if (applicablePromotion == null) {
-            return new PromotionResult(quantity, 0, BigDecimal.ZERO); // 유효하지 않은 경우, 수량 그대로 반환
+            return new PromotionResult(quantity, 0, BigDecimal.ZERO, BigDecimal.ZERO); // 유효하지 않은 경우, 수량 그대로 반환
         }
 
         int buyQuantity = applicablePromotion.getBuyQuantity();
@@ -55,7 +55,7 @@ public class PromotionController {
             freeQuantity = promotionQuantity/2;
         }
         discountAmount=productPrice.multiply(BigDecimal.valueOf(freeQuantity));
-        return new PromotionResult(quantity, freeQuantity, discountAmount);
+        return new PromotionResult(quantity, freeQuantity, discountAmount, discountAmount.multiply(BigDecimal.valueOf(++buyQuantity)));
     }
 
 

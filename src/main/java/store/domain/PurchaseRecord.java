@@ -8,13 +8,15 @@ public class PurchaseRecord {
     private int freeQuantity;
     private BigDecimal discountAmount;
     private BigDecimal totalCost;
+    private BigDecimal promotionalAmount;
 
-    public PurchaseRecord(String productName, int purchasedQuantity, int freeQuantity, BigDecimal discountAmount, BigDecimal totalCost) {
+    public PurchaseRecord(String productName, int purchasedQuantity, int freeQuantity, BigDecimal discountAmount, BigDecimal totalCost, BigDecimal promotionalAmount) {
         this.productName = productName;
         this.purchasedQuantity = purchasedQuantity;
         this.freeQuantity = freeQuantity;
         this.discountAmount = discountAmount;
         this.totalCost = totalCost;
+        this.promotionalAmount = promotionalAmount;
     }
 
     // Getters
@@ -36,5 +38,9 @@ public class PurchaseRecord {
 
     public BigDecimal getTotalCost() {
         return totalCost;
+    }
+
+    public BigDecimal getPromotionalAmount() {
+        return promotionalAmount;
     }
 }

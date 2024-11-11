@@ -59,16 +59,13 @@ public class ProductController {
                 Map<String, Integer> purchaseItems = parsePurchaseItems(input);
                 List<PurchaseRecord> purchaseRecords = new ArrayList<>();
 
-                //재고 확인 및 적용 가능한 최대 수량 조정
-                int promoStock = adjustStockAndCheck(purchaseItems);
-                if (promoStock == -1) {
-                    continue;
+                // 프로모션을 개별적으로 검증 및 적용
+                for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
+                    handleSingleProductPurchase(entry.getKey(), entry.getValue(), purchaseRecords);
                 }
-                if (validatePromotions(purchaseItems)!=null) {
-                    applyPromotions(purchaseItems, purchaseRecords, promoStock);
-                }
-                updateInventory(purchaseItems);
 
+                BigDecimal membershipDiscount = applyMembershipDiscount(purchaseRecords);
+                updateInventory(purchaseRecords);
                 validInput = true;
             } catch (IllegalArgumentException e) {
                 outputView.printError(e.getMessage());
@@ -89,105 +86,134 @@ public class ProductController {
         return purchaseItems;
     }
 
-    private Promotion validatePromotions(Map<String, Integer> purchaseItems) {
-        for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
-            String productName = entry.getKey();
-            Product product = productService.getProductByName(productName);
-            if (product != null && product.getPromotion() != null) {
-                String promotionName = product.getPromotion();
-                return promotionController.validatePromotionDate(promotionName);
-            }
+    private void handleSingleProductPurchase(String productName, int quantity, List<PurchaseRecord> purchaseRecords) {
+        int promoStock = adjustStockAndCheckForSingleProduct(productName, quantity);
+        if (promoStock == -1) {
+            return;
         }
-        return null;
+
+        Product product = productService.getProductByName(productName);
+        if (product == null) {
+            nonApplyPromotion(productName, quantity, purchaseRecords);
+            return;
+        }
+
+        if (product.getPromotion() == null) {
+            nonApplyPromotion(productName, quantity, purchaseRecords);
+            return;
+        }
+
+        String promotionName = product.getPromotion();
+        Promotion applicablePromotion = promotionController.validatePromotionDate(promotionName);
+        if (applicablePromotion == null) {
+            nonApplyPromotion(productName, quantity, purchaseRecords);
+            return;
+        }
+
+        PromotionResult promotionResult = promotionController.applyPromotionLogic(productName, quantity, promotionName, product.getPrice(), promoStock);
+        applyPromotion(productName, quantity, purchaseRecords, promotionResult);
     }
 
+    private void applyPromotion(String productName, int quantity, List<PurchaseRecord> purchaseRecords, PromotionResult promotionResult) {
+        Product product = productService.getProductByName(productName);
+        BigDecimal productPrice = product.getPrice();
+        int updatedQuantity = promotionResult.getUpdatedQuantity();
+        PurchaseRecord record = new PurchaseRecord(
+                productName,
+                updatedQuantity,
+                promotionResult.getFreeQuantity(),
+                promotionResult.getDiscountAmount(),
+                productPrice.multiply(BigDecimal.valueOf(updatedQuantity)),
+                promotionResult.getPromotionalAmount()
+        );
+        purchaseRecords.add(record);
+    }
 
-    private int adjustStockAndCheck(Map<String, Integer> purchaseItems) {
-        int promoStock = 0;
-        for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
-            String productName = entry.getKey();
-            int quantity = entry.getValue();
-            Product promoProduct = productService.getProductByNameAndPromotion(productName, true);
-            Product normalProduct = productService.getProductByNameAndPromotion(productName, false);
+    private void nonApplyPromotion(String productName, int quantity, List<PurchaseRecord> purchaseRecords) {
+        Product product = productService.getProductByName(productName);
+        PurchaseRecord record = new PurchaseRecord(
+                productName,
+                quantity,
+                0,
+                BigDecimal.ZERO,
+                product.getPrice().multiply(BigDecimal.valueOf(quantity)),
+                BigDecimal.ZERO
+        );
+        purchaseRecords.add(record);
+    }
 
-            promoStock = getPromoStock(promoProduct);
-            int normalStock = getNormalStock(normalProduct);
+    private BigDecimal applyMembershipDiscount(List<PurchaseRecord> purchaseRecords) {
+        BigDecimal totalDiscountableAmount = BigDecimal.ZERO;
+        String confirmInput = inputView.isMembershipInvalid();
+        inputConfirmValidator.validateConfirmation(confirmInput);
+        if(confirmInput.equals("N")){
+            return totalDiscountableAmount;
+        }
+        // 프로모션 혜택이 적용되지 않은 금액 합계 계산
+        for (PurchaseRecord record : purchaseRecords) {
+            totalDiscountableAmount = totalDiscountableAmount.add(record.getTotalCost().subtract(record.getPromotionalAmount()));
+        }
 
-            if (quantity > promoStock + normalStock) {
-                throw new IllegalArgumentException("해당 상품의 재고가 부족합니다.");
-            }
-            if (quantity > promoStock && promoProduct != null) {
-                return confirmPartialFullPricePayment(quantity, promoStock, productName);
-            }
+        // 멤버십 할인 계산 (30%)
+        BigDecimal membershipDiscount = totalDiscountableAmount.multiply(BigDecimal.valueOf(0.3));
+
+        // 멤버십 할인의 최대 한도 적용 (8,000원)
+        BigDecimal maxMembershipDiscount = BigDecimal.valueOf(8000);
+        if (membershipDiscount.compareTo(maxMembershipDiscount) > 0) {
+            membershipDiscount = maxMembershipDiscount;
+        }
+
+        return membershipDiscount;
+    }
+
+    private int adjustStockAndCheckForSingleProduct(String productName, int quantity) {
+        Product promoProduct = productService.getProductByNameAndPromotion(productName, true);
+        Product normalProduct = productService.getProductByNameAndPromotion(productName, false);
+
+        int promoStock = getPromoStock(promoProduct);
+        int normalStock = getNormalStock(normalProduct);
+
+        if (quantity > promoStock + normalStock) {
+            return -1;
+        }
+        if (quantity > promoStock && promoProduct != null) {
+            return confirmPartialFullPricePayment(quantity, promoStock, productName);
         }
         return promoStock;
     }
 
     private int confirmPartialFullPricePayment(int quantity, int promoStock, String productName) {
-        String confirmInput = inputView.isPromotionInvalid(quantity-promoStock,productName);
+        String confirmInput = inputView.isPromotionInvalid(quantity - promoStock, productName);
         inputConfirmValidator.validateConfirmation(confirmInput);
-        if (confirmInput.equalsIgnoreCase("Y")) {
-           return promoStock;
+        if ("Y".equalsIgnoreCase(confirmInput)) {
+            return promoStock;
         }
         return -1;
     }
 
-
-
     private int getPromoStock(Product promoProduct) {
-        if (promoProduct != null) {
-            return promoProduct.getStockQuantity();
+        if (promoProduct == null) {
+            return 0;
         }
-        return 0;
+        return promoProduct.getStockQuantity();
     }
 
     private int getNormalStock(Product normalProduct) {
-        if (normalProduct != null) {
-            return normalProduct.getStockQuantity();
+        if (normalProduct == null) {
+            return 0;
         }
-        return 0;
+        return normalProduct.getStockQuantity();
     }
 
+    private void updateInventory(List<PurchaseRecord> purchaseItems) {
+        for (PurchaseRecord record : purchaseItems) {
+            String productName = record.getProductName();
+            int totalQuantity = record.getPurchasedQuantity();
 
-    private void applyPromotions(Map<String, Integer> purchaseItems, List<PurchaseRecord> purchaseRecords, int promoStock) {
-        for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
-            String productName = entry.getKey();
-            int quantity = entry.getValue();
-            Product product = productService.getProductByName(productName);
-            if (product != null && product.getPromotion() != null) {
-                String promotionName = product.getPromotion();
-                BigDecimal productPrice = product.getPrice();
-
-                // PromotionController에서 PromotionResult 반환받음
-                PromotionResult promotionResult = promotionController.applyPromotionLogic(productName, quantity, promotionName, productPrice, promoStock);
-
-                // 업데이트된 수량을 반영
-                int updatedQuantity = promotionResult.getUpdatedQuantity();
-                purchaseItems.put(productName, updatedQuantity);
-
-                // PurchaseRecord 생성하여 할인 정보 저장
-                PurchaseRecord record = new PurchaseRecord(
-                        productName,
-                        updatedQuantity,
-                        promotionResult.getFreeQuantity(),
-                        promotionResult.getDiscountAmount(),
-                        productPrice.multiply(BigDecimal.valueOf(promotionResult.getUpdatedQuantity()))
-                );
-
-                purchaseRecords.add(record);
-            }
-        }
-    }
-
-
-    private void updateInventory(Map<String, Integer> purchaseItems) {
-        for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
-            String productName = entry.getKey();
-            int quantity = entry.getValue();
             Product promoProduct = productService.getProductByNameAndPromotion(productName, true);
             Product normalProduct = productService.getProductByNameAndPromotion(productName, false);
 
-            int remainingQuantity = quantity;
+            int remainingQuantity = totalQuantity;
 
             if (promoProduct != null && promoProduct.getStockQuantity() > 0) {
                 int promoUsed = Math.min(promoProduct.getStockQuantity(), remainingQuantity);
