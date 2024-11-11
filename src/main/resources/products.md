@@ -14,6 +14,6 @@ name,price,quantity,promotion
 초코바,1200,5,MD추천상품
 초코바,1200,5,null
 에너지바,2000,5,null
-정식도시락,6400,8,null
+정식도시락,6401,8,null
 컵라면,1700,1,MD추천상품
 컵라면,1700,10,null
