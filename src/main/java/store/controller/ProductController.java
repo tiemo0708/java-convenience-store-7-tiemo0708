@@ -58,7 +58,6 @@ public class ProductController {
                 Map<String, Integer> purchaseItems = getValidatedPurchaseItems(input);
                 List<PurchaseRecord> purchaseRecords = new ArrayList<>();
 
-                // 프로모션을 개별적으로 검증 및 적용
                 for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
                     handleSingleProductPurchase(entry.getKey(), entry.getValue(), purchaseRecords);
                 }
@@ -79,7 +78,7 @@ public class ProductController {
             inputConfirmValidator.validateConfirmation(confirmInput);
         } catch (IllegalArgumentException e) {
             outputView.printError(e.getMessage());
-            return askForAdditionalPurchase(); // 잘못된 입력 시 다시 입력 요청
+            return askForAdditionalPurchase();
         }
         return confirmInput.equalsIgnoreCase("Y");
     }
@@ -100,10 +99,11 @@ public class ProductController {
                     int quantity = ProductInputParser.extractQuantity(item);
                     inputPurchaseValidator.validateQuantity(quantity);
                     purchaseItems.put(productName, quantity);
-                    validItem = true; // 유효하면 다음 아이템으로 넘어감
+                    validItem = true;
                 } catch (IllegalArgumentException e) {
                     outputView.printError(e.getMessage());
-                    item = inputView.getProductInput(); // 잘못된 제품 항목만 다시 입력 받음
+                    input = inputView.getProductInput();  // 전체 입력을 다시 받기
+                    return getValidatedPurchaseItems(input);  // 전체 입력을 재검증하기 위해 재귀 호출
                 }
             }
         }
@@ -111,7 +111,23 @@ public class ProductController {
     }
 
     private void handleSingleProductPurchase(String productName, int quantity, List<PurchaseRecord> purchaseRecords) {
-        int promoStock = adjustStockAndCheckForSingleProduct(productName, quantity);
+        int promoStock;
+        while (true) {
+            try {
+                promoStock = adjustStockAndCheckForSingleProduct(productName, quantity);
+                break;
+            } catch (IllegalArgumentException e) {
+                outputView.printError(e.getMessage());
+                String input = inputView.getProductInput(); // 전체 입력을 다시 받기
+                Map<String, Integer> purchaseItems = getValidatedPurchaseItems(input);
+                purchaseRecords.clear(); // 기존의 잘못된 purchaseRecords 초기화
+
+                for (Map.Entry<String, Integer> entry : purchaseItems.entrySet()) {
+                    handleSingleProductPurchase(entry.getKey(), entry.getValue(), purchaseRecords);
+                }
+                return;
+            }
+        }
 
         Product product = productService.getProductByName(productName);
         if (product == null) {
@@ -176,7 +192,7 @@ public class ProductController {
                 inputConfirmValidator.validateConfirmation(confirmInput);
             } catch (IllegalArgumentException e) {
                 outputView.printError(e.getMessage());
-                return applyMembershipDiscount(purchaseRecords); // 잘못된 입력 시 다시 요청
+                return applyMembershipDiscount(purchaseRecords);
             }
             if (!confirmInput.equalsIgnoreCase("Y")) {
                 return BigDecimal.ZERO;
@@ -186,7 +202,7 @@ public class ProductController {
         BigDecimal membershipDiscount = totalDiscountableAmount.multiply(BigDecimal.valueOf(0.3));
         BigDecimal maxMembershipDiscount = BigDecimal.valueOf(8000);
         if (membershipDiscount.compareTo(maxMembershipDiscount) > 0) {
-            membershipDiscount = maxMembershipDiscount;
+            return maxMembershipDiscount;
         }
 
         return membershipDiscount;
@@ -214,13 +230,12 @@ public class ProductController {
             inputConfirmValidator.validateConfirmation(confirmInput);
         } catch (IllegalArgumentException e) {
             outputView.printError(e.getMessage());
-            return confirmPartialFullPricePayment(quantity, promoStock, productName); // 잘못된 입력 시 다시 요청
+            return confirmPartialFullPricePayment(quantity, promoStock, productName);
         }
         if (confirmInput.equalsIgnoreCase("Y")) {
             return promoStock;
-        } else {
-            return -1;
         }
+        return -1;
     }
 
     private int getPromoStock(Product promoProduct) {
