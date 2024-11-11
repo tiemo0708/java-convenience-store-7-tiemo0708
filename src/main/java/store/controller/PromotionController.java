@@ -25,7 +25,7 @@ public class PromotionController {
         return promotionService.validatePromotionDate(promotionName);
     }
 
-    public PromotionResult applyPromotionLogic(String productName, int quantity, String promotionName, BigDecimal productPrice) {
+    public PromotionResult applyPromotionLogic(String productName, int quantity, String promotionName, BigDecimal productPrice, int promoStock) {
         Promotion applicablePromotion = promotionService.findPromotionName(promotionName);
         if (applicablePromotion == null) {
             return new PromotionResult(quantity, 0, BigDecimal.ZERO); // 유효하지 않은 경우, 수량 그대로 반환
@@ -34,20 +34,25 @@ public class PromotionController {
         int buyQuantity = applicablePromotion.getBuyQuantity();
         int getQuantity = applicablePromotion.getGetQuantity();
         int freeQuantity = 0;
-        BigDecimal discountAmount = BigDecimal.ZERO;
+        int promotionQuantity = quantity;
 
-        if (shouldOfferFreeProduct(buyQuantity, quantity)) {
+        if(promoStock<=quantity){
+            promotionQuantity = promoStock;
+        }
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (shouldOfferFreeProduct(buyQuantity, quantity) && promoStock>quantity) {
             String confirmInput = inputView.confirmPromotionAdditionMessage(productName,getQuantity);
             inputConfirmValidator.validateConfirmation(confirmInput);
             if (confirmInput.equalsIgnoreCase("Y")) {
-                quantity++;
+                quantity=++promotionQuantity;
             }
         }
         if(buyQuantity==2){
-            freeQuantity = quantity/3;
+            freeQuantity = promotionQuantity/3;
         }
         if (buyQuantity==1){
-            freeQuantity = quantity/2;
+            freeQuantity = promotionQuantity/2;
         }
         discountAmount=productPrice.multiply(BigDecimal.valueOf(freeQuantity));
         return new PromotionResult(quantity, freeQuantity, discountAmount);
