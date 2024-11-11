@@ -225,7 +225,7 @@ public class ProductController {
     }
 
     private int confirmPartialFullPricePayment(int quantity, int promoStock, String productName) {
-        String confirmInput = inputView.isPromotionInvalid(quantity - promoStock, productName);
+        String confirmInput = inputView.isPromotionInvalid((quantity - promoStock)+1, productName);
         try {
             inputConfirmValidator.validateConfirmation(confirmInput);
         } catch (IllegalArgumentException e) {
