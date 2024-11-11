@@ -55,7 +55,7 @@ public class ProductController {
             handleInitialDisplay();
             String input = inputView.getProductInput();
             try {
-                Map<String, Integer> purchaseItems = parsePurchaseItems(input);
+                Map<String, Integer> purchaseItems = getValidatedPurchaseItems(input);
                 List<PurchaseRecord> purchaseRecords = new ArrayList<>();
 
                 // 프로모션을 개별적으로 검증 및 적용
@@ -66,37 +66,46 @@ public class ProductController {
                 BigDecimal membershipDiscount = applyMembershipDiscount(purchaseRecords);
                 updateInventory(purchaseRecords);
                 printReceipt(purchaseRecords, membershipDiscount);
-                validInput = AdditionalPurchase();
+                validInput = askForAdditionalPurchase();
             } catch (IllegalArgumentException e) {
                 outputView.printError(e.getMessage());
             }
         }
     }
 
-    private boolean AdditionalPurchase() {
+    private boolean askForAdditionalPurchase() {
         String confirmInput = inputView.askForAdditionalPurchase();
-        inputConfirmValidator.validateConfirmation(confirmInput);
-        if (confirmInput.equals("Y")){
-            return true;
+        try {
+            inputConfirmValidator.validateConfirmation(confirmInput);
+        } catch (IllegalArgumentException e) {
+            outputView.printError(e.getMessage());
+            return askForAdditionalPurchase(); // 잘못된 입력 시 다시 입력 요청
         }
-        return false;
+        return confirmInput.equalsIgnoreCase("Y");
     }
 
     private void printReceipt(List<PurchaseRecord> purchaseRecords, BigDecimal membershipDiscount) {
-        outputView.printReceipt(purchaseRecords,membershipDiscount);
-
-
+        outputView.printReceipt(purchaseRecords, membershipDiscount);
     }
 
-    private Map<String, Integer> parsePurchaseItems(String input) {
-        String[] items = input.split(",");
+    private Map<String, Integer> getValidatedPurchaseItems(String input) {
         Map<String, Integer> purchaseItems = new HashMap<>();
+        String[] items = input.split(",");
         for (String item : items) {
-            inputPurchaseValidator.validateProductInput(item);
-            String productName = ProductInputParser.extractProductName(item);
-            int quantity = ProductInputParser.extractQuantity(item);
-            inputPurchaseValidator.validateQuantity(quantity);
-            purchaseItems.put(productName, quantity);
+            boolean validItem = false;
+            while (!validItem) {
+                try {
+                    inputPurchaseValidator.validateProductInput(item);
+                    String productName = ProductInputParser.extractProductName(item);
+                    int quantity = ProductInputParser.extractQuantity(item);
+                    inputPurchaseValidator.validateQuantity(quantity);
+                    purchaseItems.put(productName, quantity);
+                    validItem = true; // 유효하면 다음 아이템으로 넘어감
+                } catch (IllegalArgumentException e) {
+                    outputView.printError(e.getMessage());
+                    item = inputView.getProductInput(); // 잘못된 제품 항목만 다시 입력 받음
+                }
+            }
         }
         return purchaseItems;
     }
@@ -157,22 +166,24 @@ public class ProductController {
     private BigDecimal applyMembershipDiscount(List<PurchaseRecord> purchaseRecords) {
         BigDecimal totalDiscountableAmount = BigDecimal.ZERO;
 
-        // 프로모션 혜택이 적용되지 않은 금액 합계 계산
         for (PurchaseRecord record : purchaseRecords) {
             totalDiscountableAmount = totalDiscountableAmount.add(record.getTotalCost().subtract(record.getPromotionalAmount()));
         }
-        if(!totalDiscountableAmount.equals(BigDecimal.ZERO)) {
-            String confirmInput = inputView.isMembershipInvalid();
-            inputConfirmValidator.validateConfirmation(confirmInput);
 
-            if (confirmInput.equals("N")) {
+        if (!totalDiscountableAmount.equals(BigDecimal.ZERO)) {
+            String confirmInput = inputView.isMembershipInvalid();
+            try {
+                inputConfirmValidator.validateConfirmation(confirmInput);
+            } catch (IllegalArgumentException e) {
+                outputView.printError(e.getMessage());
+                return applyMembershipDiscount(purchaseRecords); // 잘못된 입력 시 다시 요청
+            }
+            if (!confirmInput.equalsIgnoreCase("Y")) {
                 return BigDecimal.ZERO;
             }
         }
-        // 멤버십 할인 계산 (30%)
-        BigDecimal membershipDiscount = totalDiscountableAmount.multiply(BigDecimal.valueOf(0.3));
 
-        // 멤버십 할인의 최대 한도 적용 (8,000원)
+        BigDecimal membershipDiscount = totalDiscountableAmount.multiply(BigDecimal.valueOf(0.3));
         BigDecimal maxMembershipDiscount = BigDecimal.valueOf(8000);
         if (membershipDiscount.compareTo(maxMembershipDiscount) > 0) {
             membershipDiscount = maxMembershipDiscount;
@@ -199,11 +210,17 @@ public class ProductController {
 
     private int confirmPartialFullPricePayment(int quantity, int promoStock, String productName) {
         String confirmInput = inputView.isPromotionInvalid(quantity - promoStock, productName);
-        inputConfirmValidator.validateConfirmation(confirmInput);
-        if ("Y".equalsIgnoreCase(confirmInput)) {
-            return promoStock;
+        try {
+            inputConfirmValidator.validateConfirmation(confirmInput);
+        } catch (IllegalArgumentException e) {
+            outputView.printError(e.getMessage());
+            return confirmPartialFullPricePayment(quantity, promoStock, productName); // 잘못된 입력 시 다시 요청
         }
-        return -1;
+        if (confirmInput.equalsIgnoreCase("Y")) {
+            return promoStock;
+        } else {
+            return -1;
+        }
     }
 
     private int getPromoStock(Product promoProduct) {
