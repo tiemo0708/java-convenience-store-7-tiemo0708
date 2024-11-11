@@ -6,6 +6,7 @@ import store.domain.PromotionResult;
 import store.domain.PurchaseRecord;
 import store.service.ProductService;
 import store.service.PurchaseService;
+import store.utils.ErrorMessages;
 import store.utils.ProductInputParser;
 import store.validator.InputConfirmValidator;
 import store.validator.InputPurchaseValidator;
@@ -105,9 +106,6 @@ public class ProductController {
 
     private void handleSingleProductPurchase(String productName, int quantity, List<PurchaseRecord> purchaseRecords) {
         int promoStock = adjustStockAndCheckForSingleProduct(productName, quantity);
-        if (promoStock == -1) {
-            return;
-        }
 
         Product product = productService.getProductByName(productName);
         if (product == null) {
@@ -191,7 +189,7 @@ public class ProductController {
         int normalStock = getNormalStock(normalProduct);
 
         if (quantity > promoStock + normalStock) {
-            return -1;
+            throw new IllegalArgumentException(ErrorMessages.INSUFFICIENT_STOCK_MESSAGE);
         }
         if (quantity > promoStock && promoProduct != null) {
             return confirmPartialFullPricePayment(quantity, promoStock, productName);
