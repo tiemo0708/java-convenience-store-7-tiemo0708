@@ -156,16 +156,19 @@ public class ProductController {
 
     private BigDecimal applyMembershipDiscount(List<PurchaseRecord> purchaseRecords) {
         BigDecimal totalDiscountableAmount = BigDecimal.ZERO;
-        String confirmInput = inputView.isMembershipInvalid();
-        inputConfirmValidator.validateConfirmation(confirmInput);
-        if(confirmInput.equals("N")){
-            return totalDiscountableAmount;
-        }
+
         // 프로모션 혜택이 적용되지 않은 금액 합계 계산
         for (PurchaseRecord record : purchaseRecords) {
             totalDiscountableAmount = totalDiscountableAmount.add(record.getTotalCost().subtract(record.getPromotionalAmount()));
         }
+        if(!totalDiscountableAmount.equals(BigDecimal.ZERO)) {
+            String confirmInput = inputView.isMembershipInvalid();
+            inputConfirmValidator.validateConfirmation(confirmInput);
 
+            if (confirmInput.equals("N")) {
+                return BigDecimal.ZERO;
+            }
+        }
         // 멤버십 할인 계산 (30%)
         BigDecimal membershipDiscount = totalDiscountableAmount.multiply(BigDecimal.valueOf(0.3));
 
