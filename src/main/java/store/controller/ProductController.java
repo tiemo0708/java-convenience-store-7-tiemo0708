@@ -61,15 +61,12 @@ public class ProductController {
 
                 //재고 확인 및 적용 가능한 최대 수량 조정
                 int promoStock = adjustStockAndCheck(purchaseItems);
-
+                if (promoStock == -1) {
+                    continue;
+                }
                 if (validatePromotions(purchaseItems)!=null) {
                     applyPromotions(purchaseItems, purchaseRecords, promoStock);
                 }
-//                if(!promotionAble){
-//                    normalPurchase
-//                }
-
-                //재고 차감
                 updateInventory(purchaseItems);
 
                 validInput = true;
